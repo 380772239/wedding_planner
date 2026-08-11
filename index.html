@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💍 简婚记 - 备婚管家与账本</title>
+  
+  <!-- Google Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700;900&family=Outfit:wght@600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js & DataLabels Plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <!-- Style -->
+  <link rel="stylesheet" href="css/style.css?v=2.5">
+</head>
+<body>
+
+
+  <div class="app-container" style="display: none;">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon" style="width: 36px; height: 36px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;"><img src="logo.png" alt="简婚记 Logo" style="width: 100%; height: 100%; max-width: 36px; max-height: 36px; object-fit: contain; display: block;"></div>
+        <div class="brand-text">
+          <h1>简婚记</h1>
+        </div>
+      </div>
+      <div class="header-actions">
+
+        <button id="loginCornerBtn" class="btn btn-primary" onclick="openAuthModal('login')">
+          <i class="fa-solid fa-user-lock"></i> 未登录 (点击登录)
+        </button>
+        <button id="openSettingsBtn" class="btn btn-secondary btn-icon-mobile" onclick="openSettingsModal()" title="婚礼设置">
+          <i class="fa-solid fa-gear"></i> <span class="hide-text-mobile">设置</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs (4 Core Modules) -->
+    <nav class="nav-tabs" id="mainNavTabs">
+      <button class="nav-tab active" data-tab="tab-overview">
+        <i class="fa-solid fa-heart-pulse"></i> <span class="tab-text">概览</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-checklist">
+        <i class="fa-solid fa-list-check"></i> <span class="tab-text">清单</span>
+        <span class="badge" id="checklistBadge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-budget">
+        <i class="fa-solid fa-coins"></i> <span class="tab-text">预算</span>
+      </button>
+      <button class="nav-tab" data-tab="tab-gifts">
+        <i class="fa-solid fa-gift"></i> <span class="tab-text">礼金</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: OVERVIEW & COUNTDOWN -->
+    <section id="tab-overview" class="tab-content active">
+      <!-- Hero Card -->
+      <div class="hero-card">
+        <div class="hero-header">
+          <span class="couples-names" id="heroCouples">Jack ❤️ Rose</span>
+          <span class="wedding-location" id="heroLocation"><i class="fa-solid fa-location-dot"></i> 待设置婚礼地点</span>
+        </div>
+        
+        <!-- Countdown Timer grid -->
+        <div class="countdown-container">
+          <div class="countdown-unit">
+            <div class="unit-box"><span id="cdDays">00</span></div>
+            <span class="unit-label">天</span>
+          </div>
+          <div class="countdown-divider">:</div>
+          <div class="countdown-unit">
+            <div class="unit-box"><span id="cdHours">00</span></div>
+            <span class="unit-label">时</span>
+          </div>
+          <div class="countdown-divider">:</div>
+          <div class="countdown-unit">
+            <div class="unit-box"><span id="cdMinutes">00</span></div>
+            <span class="unit-label">分</span>
+          </div>
+          <div class="countdown-divider">:</div>
+          <div class="countdown-unit">
+            <div class="unit-box"><span id="cdSeconds">00</span></div>
+            <span class="unit-label">秒</span>
+          </div>
+        </div>
+
+        <div class="wedding-date-tag">
+          <i class="fa-regular fa-calendar-check"></i> 婚礼大吉日：<strong id="heroWeddingDate">未设定</strong>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Bar -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon gold"><i class="fa-solid fa-list-check"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">清单准备进度</span>
+            <div class="metric-value" id="overviewChecklistRate">0%</div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="checklistProgressFill" style="width: 0%"></div></div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon rose"><i class="fa-solid fa-wallet"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">已使用预算比例</span>
+            <div class="metric-value" id="overviewBudgetRate">0%</div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill rose" id="budgetProgressFill" style="width: 0%"></div></div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">已收到礼金总额</span>
+            <div class="metric-value" id="overviewGiftsTotal">¥0</div>
+            <span class="metric-sub" id="overviewGiftsCount">共 0 笔宾客礼金</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overview Cards Grid -->
+      <div class="dashboard-grid">
+        <div class="glass-card">
+          <div class="card-title">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> 近期待办事项</h3>
+            <span class="view-all" onclick="switchTab('tab-checklist')" style="cursor: pointer; color: var(--primary-rose); font-size: 0.85rem;">查看全部 &rightarrow;</span>
+          </div>
+          <div id="urgentChecklist" class="mini-list">
+            <!-- Dynamic items -->
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <h3><i class="fa-solid fa-chart-pie"></i> 预算花费快速看</h3>
+            <span class="view-all" onclick="switchTab('tab-budget')" style="cursor: pointer; color: var(--primary-rose); font-size: 0.85rem;">详细账单 &rightarrow;</span>
+          </div>
+          <div class="chart-container mini-chart">
+            <canvas id="overviewBudgetChart"></canvas>
+          </div>
+          <div id="overviewChartLegend" class="custom-chart-legend"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CHECKLIST -->
+    <section id="tab-checklist" class="tab-content">
+      <!-- Clean Print Header (Visible only in PDF/Print mode) -->
+      <div class="print-doc-header">
+        <h2>💍 简婚记 - 备婚待办事项清单</h2>
+        <p>新人：<span class="print-couples"></span> | 婚礼日期：<span class="print-date"></span></p>
+        <hr>
+      </div>
+
+      <div class="section-header">
+        <div class="title-area">
+          <h2>全阶段备婚清单</h2>
+          <p>条理清晰管理备婚采购与各项服务，不遗漏细节</p>
+        </div>
+        <div class="header-buttons">
+          <button id="loadPresetChecklistBtn" class="btn btn-outline" onclick="loadPresetChecklist()">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> 载入标准模板
+          </button>
+          <button id="clearChecklistBtn" class="btn btn-outline" style="color: var(--color-danger); border-color: rgba(214,48,49,0.3);" onclick="clearChecklist()">
+            <i class="fa-solid fa-trash-can"></i> 清空清单
+          </button>
+          <button id="addChecklistItemBtn" class="btn btn-primary" onclick="openAddChecklistModal()">
+            <i class="fa-solid fa-plus"></i> 新增待办事项
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters Row -->
+      <div class="filters-card">
+        <div class="filter-group flex-grow">
+          <select id="checklistCategorySelect" class="form-control">
+            <option value="all">全部分类</option>
+            <option value="酒店婚宴">酒店婚宴</option>
+            <option value="婚庆策划与四大">婚庆策划与四大金刚</option>
+            <option value="婚纱礼服与美妆">婚纱礼服与美妆</option>
+            <option value="珠宝首饰">珠宝首饰</option>
+            <option value="婚房布置与采购">婚房布置与采购</option>
+            <option value="伴手礼与喜糖">伴手礼与喜糖</option>
+            <option value="人员与通知">人员与通知</option>
+            <option value="其他事项">其他事项</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Checklist Summary Bar -->
+      <div class="checklist-status-bar">
+        <span>完成进度: <strong id="checklistCountText">0/0 完成 (0%)</strong></span>
+        <div class="progress-bar-bg flex-grow"><div class="progress-bar-fill" id="checklistMainProgress" style="width: 0%"></div></div>
+      </div>
+
+      <!-- Print Only Table Header for Checklist -->
+      <div class="print-chk-table-header">
+        <span>序号</span>
+        <span>事项名称</span>
+        <span>分类</span>
+        <span>备注说明</span>
+        <span>状态</span>
+      </div>
+
+      <!-- Checklist Container -->
+      <div id="checklistItemsContainer" class="checklist-items-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- TAB 3: BUDGET & EXPENSES -->
+    <section id="tab-budget" class="tab-content">
+      <!-- Clean Print Header (Visible only in PDF/Print mode) -->
+      <div class="print-doc-header">
+        <h2>💍 简婚记 - 婚礼预算与支出明细表</h2>
+        <p>新人：<span class="print-couples"></span> | 设定总预算：<span class="print-budget-total"></span> | 实际已支出：<span class="print-budget-spent"></span> | 剩余可用：<span class="print-budget-remain"></span></p>
+        <hr>
+      </div>
+
+      <div class="section-header">
+        <div class="title-area">
+          <h2>预算与支出统计</h2>
+          <p>掌控各项婚礼开销，合理分配，拒绝超支</p>
+        </div>
+        <div class="header-buttons">
+          <button id="setTotalBudgetBtn" class="btn btn-secondary" onclick="openBudgetModal()">
+            <i class="fa-solid fa-pen-to-square"></i> 设定总预算
+          </button>
+          <button id="clearBudgetBtn" class="btn btn-outline btn-danger-soft" onclick="clearBudget()">
+            <i class="fa-solid fa-rotate-left"></i> 重置支出
+          </button>
+          <button id="addExpenseBtn" class="btn btn-primary" onclick="openAddExpenseModal()">
+            <i class="fa-solid fa-plus"></i> 新增支出记录
+          </button>
+        </div>
+      </div>
+
+      <!-- Budget Overview Cards Grid -->
+      <div class="budget-summary-grid">
+        <div class="budget-card" onclick="openBudgetModal()" style="cursor: pointer;" title="点击设定总预算">
+          <div class="b-icon gold"><i class="fa-solid fa-vault"></i></div>
+          <div class="b-details">
+            <span class="b-title">备婚设定总预算</span>
+            <div class="b-amount" id="budgetTotalDisplay">¥0</div>
+          </div>
+        </div>
+
+        <div class="budget-card">
+          <div class="b-icon rose"><i class="fa-solid fa-receipt"></i></div>
+          <div class="b-details">
+            <span class="b-title">实际已花费金额</span>
+            <div class="b-amount" id="budgetSpentDisplay">¥0</div>
+          </div>
+        </div>
+
+        <div class="budget-card">
+          <div class="b-icon green" id="budgetRemainIcon"><i class="fa-solid fa-piggy-bank"></i></div>
+          <div class="b-details">
+            <span class="b-title">剩余可用额度</span>
+            <div class="b-amount" id="budgetRemainingDisplay">¥0</div>
+          </div>
+        </div>
+
+        <div class="budget-card">
+          <div class="b-icon blue"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+          <div class="b-details">
+            <span class="b-title">已付定金 / 待付尾款</span>
+            <div class="b-sub-amount">
+              定金: <span id="budgetDepositDisplay" class="text-green">¥0</span> | 
+              尾款: <span id="budgetPendingDisplay" class="text-rose">¥0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart and Table Section -->
+      <div class="glass-card" style="margin-bottom: 20px;">
+        <div class="card-title">
+          <h3><i class="fa-solid fa-chart-pie"></i> 支出分类占比图</h3>
+        </div>
+        <div class="chart-container large-chart" style="max-width: 340px; height: 220px; margin: 0 auto;">
+          <canvas id="budgetMainChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Expenses Table Glass Card (100% Full Width Row) -->
+      <div class="glass-card" style="width: 100%;">
+        <div class="card-title">
+          <h3><i class="fa-solid fa-receipt"></i> 婚礼支出明细账单</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="custom-table" id="expensesTable">
+            <thead>
+              <tr>
+                <th style="width: 50px;">序号</th>
+                <th>分类</th>
+                <th>支出项目名称</th>
+                <th>已花费总额</th>
+                <th>付款状态</th>
+                <th>已付定金</th>
+                <th>待付尾款</th>
+                <th class="no-print" style="width: 100px; text-align: center;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="expensesTableBody">
+              <!-- Rendered Dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: GIFTS & RED ENVELOPES -->
+    <section id="tab-gifts" class="tab-content">
+      <!-- Clean Print Header (Visible only in PDF/Print mode) -->
+      <div class="print-doc-header">
+        <h2>💍 简婚记 - 婚礼人情礼金账本</h2>
+        <p>新人：<span class="print-couples"></span> | 收到礼金：<span class="print-gift-recv"></span> | 随礼支出：<span class="print-gift-sent"></span></p>
+        <hr>
+      </div>
+
+      <div class="section-header">
+        <div class="title-area">
+          <h2>人情礼金账本</h2>
+          <p>清晰记录宾客礼金与往来人情，回礼不遗漏</p>
+        </div>
+        <div class="header-buttons">
+          <button id="addGiftBtn" class="btn btn-primary" onclick="openAddGiftModal()">
+            <i class="fa-solid fa-plus"></i> 登记一笔礼金
+          </button>
+        </div>
+      </div>
+
+      <!-- Gifts Overview Summary Grid (Matches Budget 2x2 UI) -->
+      <div class="budget-summary-grid">
+        <div class="budget-card">
+          <div class="b-icon rose"><i class="fa-solid fa-hand-holding-heart"></i></div>
+          <div class="b-details">
+            <span class="b-title">累计收到礼金</span>
+            <div class="b-amount" id="giftTotalRecvDisplay">¥0</div>
+          </div>
+        </div>
+
+        <div class="budget-card">
+          <div class="b-icon blue"><i class="fa-solid fa-paper-plane"></i></div>
+          <div class="b-details">
+            <span class="b-title">累计随礼支出</span>
+            <div class="b-amount" id="giftTotalSentDisplay">¥0</div>
+          </div>
+        </div>
+
+        <div class="budget-card">
+          <div class="b-icon green"><i class="fa-solid fa-scale-balanced"></i></div>
+          <div class="b-details">
+            <span class="b-title">人情往来净额</span>
+            <div class="b-amount" id="giftNetDisplay">¥0</div>
+          </div>
+        </div>
+
+        <div class="budget-card">
+          <div class="b-icon purple"><i class="fa-solid fa-address-book"></i></div>
+          <div class="b-details">
+            <span class="b-title">人情登记项目数</span>
+            <div class="b-amount" id="giftCountDisplay">0 笔</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gifts Search & Filter Bar -->
+      <div class="filters-card margin-top-lg">
+        <div class="filter-group">
+          <div class="pill-group" id="giftTypePills">
+            <button type="button" class="pill active" data-type="all">
+              <i class="fa-solid fa-layer-group"></i> 全部
+            </button>
+            <button type="button" class="pill" data-type="recv">
+              <i class="fa-solid fa-hand-holding-heart"></i> 收礼
+            </button>
+            <button type="button" class="pill" data-type="sent">
+              <i class="fa-solid fa-paper-plane"></i> 随礼
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <select id="giftRelationSelect" class="form-control">
+            <option value="all">全部关系分组</option>
+            <option value="男方亲戚">男方亲戚</option>
+            <option value="女方亲戚">女方亲戚</option>
+            <option value="男方同事">男方同事</option>
+            <option value="女方同事">女方同事</option>
+            <option value="同学朋友">同学朋友</option>
+            <option value="长辈领导">长辈领导</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+
+        <div class="filter-group flex-grow">
+          <div class="search-box luxury-search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="giftSearchInput" placeholder="按姓名、关系或备注搜索礼金...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Gifts Table Glass Card (100% Full Width Row) -->
+      <div class="glass-card" style="width: 100%;">
+          <div class="card-title">
+            <h3><i class="fa-solid fa-book-open"></i> 礼金明细清册</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="custom-table" id="giftsTable">
+              <thead>
+                <tr>
+                  <th>类型</th>
+                  <th>宾客姓名</th>
+                  <th>关系分组</th>
+                  <th>礼金金额</th>
+                  <th>日期</th>
+                  <th>备注</th>
+                  <th class="td-actions no-print">操作</th>
+                </tr>
+              </thead>
+              <tbody id="giftsTableBody">
+                <!-- Rendered Dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+    </section>
+
+  <!-- Modal 5: Export Modal (Clean PDF & CSV Export) -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-export"></i> 导出备婚数据</h3>
+        <button class="close-modal" data-close="exportModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Format 1: Excel / CSV Table -->
+        <div style="margin-bottom: 22px;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 6px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-excel" style="color: #27ae60; font-size: 1.1rem;"></i> 格式一：Excel / CSV 表格导出
+          </h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">选择要导出的模块，生成可在 Excel 中编辑的表格：</p>
+          
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <button id="exportCsvChecklistBtn" class="btn btn-outline" style="flex-direction: column; padding: 12px 6px; font-size: 0.82rem; gap: 6px; border-color: rgba(39, 174, 96, 0.35);">
+              <i class="fa-solid fa-list-check" style="font-size: 1.25rem; color: var(--primary-rose);"></i>
+              <span style="font-weight: 600; color: var(--text-main);">待办清单表格</span>
+            </button>
+            
+            <button id="exportCsvExpensesBtn" class="btn btn-outline" style="flex-direction: column; padding: 12px 6px; font-size: 0.82rem; gap: 6px; border-color: rgba(39, 174, 96, 0.35);">
+              <i class="fa-solid fa-receipt" style="font-size: 1.25rem; color: var(--primary-gold);"></i>
+              <span style="font-weight: 600; color: var(--text-main);">预算支出表格</span>
+            </button>
+            
+            <button id="exportCsvGiftsBtn" class="btn btn-outline" style="flex-direction: column; padding: 12px 6px; font-size: 0.82rem; gap: 6px; border-color: rgba(39, 174, 96, 0.35);">
+              <i class="fa-solid fa-gift" style="font-size: 1.25rem; color: #6c5ce7;"></i>
+              <span style="font-weight: 600; color: var(--text-main);">人情礼金表格</span>
+            </button>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed rgba(0,0,0,0.12); margin: 18px 0;">
+
+        <!-- Format 2: PDF Document / Print -->
+        <div>
+          <h4 style="font-size: 0.95rem; margin-bottom: 6px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-pdf" style="color: var(--primary-rose); font-size: 1.1rem;"></i> 格式二：PDF 文档导出 / 打印
+          </h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">选择要导出的模块，生成排版精致的 PDF 打印文档：</p>
+          
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <button id="exportPdfChecklistBtn" class="btn btn-outline" style="flex-direction: column; padding: 12px 6px; font-size: 0.82rem; gap: 6px; border-color: rgba(232, 67, 147, 0.35);">
+              <i class="fa-solid fa-file-lines" style="font-size: 1.25rem; color: var(--primary-rose);"></i>
+              <span style="font-weight: 600; color: var(--text-main);">待办清单 PDF</span>
+            </button>
+            
+            <button id="exportPdfExpensesBtn" class="btn btn-outline" style="flex-direction: column; padding: 12px 6px; font-size: 0.82rem; gap: 6px; border-color: rgba(232, 67, 147, 0.35);">
+              <i class="fa-solid fa-file-invoice-dollar" style="font-size: 1.25rem; color: var(--primary-gold);"></i>
+              <span style="font-weight: 600; color: var(--text-main);">预算支出 PDF</span>
+            </button>
+            
+            <button id="exportPdfGiftsBtn" class="btn btn-outline" style="flex-direction: column; padding: 12px 6px; font-size: 0.82rem; gap: 6px; border-color: rgba(232, 67, 147, 0.35);">
+              <i class="fa-solid fa-book-bookmark" style="font-size: 1.25rem; color: #6c5ce7;"></i>
+              <span style="font-weight: 600; color: var(--text-main);">人情礼金 PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-footer margin-top-md" style="margin-top: 20px;">
+          <button type="button" class="btn btn-outline" data-close="exportModal">关闭</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>💍 简婚记</p>
+    </footer>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Modal 1: Settings -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-gear"></i> 婚礼信息设置</h3>
+        <button class="close-modal" data-close="settingsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="settingsFormDiv">
+          <div class="form-group">
+            <label>新人姓名:</label>
+            <input type="text" id="settingCouples" class="form-control" placeholder="Jack ❤️ Rose">
+          </div>
+          <div class="form-group">
+            <label>婚礼大吉日:</label>
+            <input type="datetime-local" id="settingDate" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>婚礼地点/酒店:</label>
+            <input type="text" id="settingLocation" class="form-control" placeholder="如：三亚海棠湾亚特兰蒂斯酒店">
+          </div>
+          <div class="form-group" style="border-top: 1px dashed rgba(0,0,0,0.1); margin-top: 20px; padding-top: 16px;">
+            <label><i class="fa-solid fa-screwdriver-wrench" style="color: var(--text-muted);"></i> 账户与数据管理</label>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('settingsModal'); openModal('exportModal');">
+                <i class="fa-solid fa-file-export"></i> 导出数据
+              </button>
+              <button type="button" id="settingsLogoutBtn" class="btn btn-outline" style="flex: 1; color: var(--color-danger); border-color: rgba(214, 48, 49, 0.3);" onclick="closeModal('settingsModal'); handleLogout();">
+                <i class="fa-solid fa-right-from-bracket"></i> 退出账号
+              </button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-close="settingsModal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="handleSaveSettings()">保存设置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 1.5: Total Budget Modal -->
+  <div class="modal-overlay" id="totalBudgetModal">
+    <div class="modal-card" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-pen-to-square"></i> 设定备婚总预算</h3>
+        <button class="close-modal" data-close="totalBudgetModal" onclick="closeModal('totalBudgetModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="totalBudgetForm">
+          <div class="form-group">
+            <label>备婚设定总预算:</label>
+            <input type="number" id="inputTotalBudget" class="form-control" min="0" step="1000" placeholder="如：200000" required>
+          </div>
+          <div class="modal-footer margin-top-md">
+            <button type="button" class="btn btn-outline" data-close="totalBudgetModal" onclick="closeModal('totalBudgetModal')">取消</button>
+            <button type="button" class="btn btn-rose" onclick="handleSaveTotalBudget()">保存预算</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Checklist Item -->
+  <div class="modal-overlay" id="checklistModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="checklistModalTitle"><i class="fa-solid fa-list-check"></i> 新增待办事项</h3>
+        <button class="close-modal" data-close="checklistModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="checklistForm">
+          <input type="hidden" id="chkId">
+          <div class="form-group">
+            <label>事项名称:</label>
+            <input type="text" id="chkTitle" class="form-control" placeholder="如：挑选婚纱照摄影机构" required>
+          </div>
+          <div class="form-group">
+            <label>事项分类:</label>
+            <select id="chkCategory" class="form-control" required>
+              <option value="酒店婚宴">酒店婚宴</option>
+              <option value="婚庆策划与四大">婚庆策划与四大金刚</option>
+              <option value="婚纱礼服与美妆">婚纱礼服与美妆</option>
+              <option value="珠宝首饰">珠宝首饰</option>
+              <option value="婚房布置与采购">婚房布置与采购</option>
+              <option value="伴手礼与喜糖">伴手礼与喜糖</option>
+              <option value="人员与通知">人员与通知</option>
+              <option value="其他事项">其他事项</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>备注说明:</label>
+            <textarea id="chkNotes" class="form-control" rows="2" placeholder="填写注意事项或联系方式..."></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-close="checklistModal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="handleSaveChecklist()">保存事项</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Expense Item -->
+  <div class="modal-overlay" id="expenseModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="expenseModalTitle"><i class="fa-solid fa-receipt"></i> 记一笔支出</h3>
+        <button class="close-modal" data-close="expenseModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="expenseForm">
+          <input type="hidden" id="expId">
+          <div class="form-group">
+            <label>支出项目名称:</label>
+            <input type="text" id="expTitle" class="form-control" placeholder="如：婚宴酒店预订押金" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>支出分类:</label>
+              <select id="expCategory" class="form-control" required>
+                <option value="酒店婚宴">酒店婚宴</option>
+                <option value="婚庆策划">婚庆策划</option>
+                <option value="四大金刚">四大金刚</option>
+                <option value="婚纱礼服">婚纱礼服</option>
+                <option value="珠宝首饰">珠宝首饰</option>
+                <option value="伴手礼与喜糖">伴手礼与喜糖</option>
+                <option value="婚房与场地布置">婚房与场地布置</option>
+                <option value="交通车队">交通车队</option>
+                <option value="其他开销">其他开销</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>花费总金额:</label>
+              <input type="number" id="expAmount" class="form-control" min="0" step="0.01" placeholder="50000" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>付款状态:</label>
+              <select id="expStatus" class="form-control" required>
+                <option value="paid">已全额结清</option>
+                <option value="deposit">仅付定金</option>
+                <option value="pending">未付款/计划中</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>已付定金金额:</label>
+              <input type="number" id="expDeposit" class="form-control" min="0" step="0.01" placeholder="10000">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>备注说明:</label>
+            <textarea id="expNotes" class="form-control" rows="2" placeholder="合同约定、余款支付时间等..."></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-close="expenseModal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="handleSaveExpense()">保存账单</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Gift Item -->
+  <div class="modal-overlay" id="giftModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="giftModalTitle"><i class="fa-solid fa-gift"></i> 登记礼金</h3>
+        <button class="close-modal" data-close="giftModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="giftForm">
+          <input type="hidden" id="gftId">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>礼金类型:</label>
+              <select id="gftType" class="form-control" required>
+                <option value="recv">收到的礼金</option>
+                <option value="sent">随出的礼金</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>宾客 / 对象姓名:</label>
+              <input type="text" id="gftName" class="form-control" placeholder="如：张三" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>关系分组:</label>
+              <select id="gftRelation" class="form-control" required>
+                <option value="男方亲戚">男方亲戚</option>
+                <option value="女方亲戚">女方亲戚</option>
+                <option value="男方同事">男方同事</option>
+                <option value="女方同事">女方同事</option>
+                <option value="同学朋友">同学朋友</option>
+                <option value="长辈领导">长辈领导</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>礼金金额:</label>
+              <input type="number" id="gftAmount" class="form-control" min="0" step="100" placeholder="1000" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>收到/随礼日期:</label>
+            <input type="date" id="gftDate" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>备注说明:</label>
+            <textarea id="gftNotes" class="form-control" rows="2" placeholder="桌号、礼品细节或往来说明..."></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-close="giftModal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="handleSaveGift()">保存礼金记录</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 6: Auth Modal (Login / Register) -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card" style="max-width: 420px; padding: 26px 22px;">
+      <div class="modal-header" style="justify-content: center; position: relative;">
+        <h3 id="authModalTitle" style="font-size: 1.2rem;"><i class="fa-solid fa-user-lock" style="color: var(--primary-rose);"></i> 账号登录</h3>
+      </div>
+      
+      <!-- Auth Tabs: Login vs Register -->
+      <div style="display: flex; background: rgba(0,0,0,0.04); border-radius: var(--radius-sm); padding: 4px; margin: 16px 0 18px 0;">
+        <button type="button" id="authTabLogin" class="btn active" style="flex: 1; border-radius: 6px; padding: 8px; font-size: 0.88rem;" onclick="switchAuthTab('login')">登录账号</button>
+        <button type="button" id="authTabRegister" class="btn" style="flex: 1; border-radius: 6px; padding: 8px; font-size: 0.88rem; background: transparent; color: var(--text-muted);" onclick="switchAuthTab('register')">注册新账号</button>
+      </div>
+
+      <form id="authForm">
+        <div class="form-group">
+          <label for="authUsername"><i class="fa-solid fa-user"></i> 用户名</label>
+          <input type="text" id="authUsername" class="form-control" placeholder="请输入用户名" required autocomplete="username">
+        </div>
+
+        <div class="form-group margin-top-md">
+          <label for="authPassword"><i class="fa-solid fa-key"></i> 密码</label>
+          <input type="password" id="authPassword" class="form-control" placeholder="请输入密码 (至少4位)" required autocomplete="current-password">
+        </div>
+
+        <div class="form-group margin-top-md" id="authConfirmGroup" style="display: none;">
+          <label for="authConfirmPassword"><i class="fa-solid fa-shield-halved"></i> 确认密码</label>
+          <input type="password" id="authConfirmPassword" class="form-control" placeholder="请再次输入密码" autocomplete="new-password">
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 14px; font-size: 0.82rem; color: var(--text-muted);">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="rememberWeekCheck" checked style="width: 15px; height: 15px; accent-color: var(--primary-rose);">
+            <span>默认保持登录状态 7 天 (无需重复登录)</span>
+          </label>
+        </div>
+
+        <div id="authErrorMsg" style="color: #e74c3c; font-size: 0.85rem; margin-top: 12px; display: none; text-align: center; font-weight: 600;"></div>
+
+        <div class="modal-footer margin-top-lg" style="margin-top: 20px; justify-content: center;">
+          <button type="submit" id="authSubmitBtn" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-right-to-bracket"></i> 确认登录</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reusable Custom Confirmation Modal (Replaces Browser System Confirm) -->
+  <div class="modal-overlay" id="customConfirmModal">
+    <div class="modal-card confirm-modal-card">
+      <div class="confirm-icon-wrapper danger" id="confirmModalIcon">
+        <i class="fa-solid fa-trash-can"></i>
+      </div>
+      <h3 id="confirmModalTitle" class="confirm-title">确认操作</h3>
+      <p id="confirmModalMessage" class="confirm-message">确定要执行此操作吗？</p>
+      <div class="confirm-modal-footer">
+        <button type="button" class="btn btn-outline" id="confirmModalCancelBtn">取消</button>
+        <button type="button" class="btn btn-danger" id="confirmModalOkBtn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- App Main JS -->
+  <script src="js/app_v3.js"></script>
+</body>
+</html>
